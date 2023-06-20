@@ -1,6 +1,6 @@
 package guru.sfg.beer.order.service.sm.actions;
 
-import guru.sfg.beer.order.service.config.JmsConfig;
+import guru.sfg.beer.order.service.config.RabbitmqConfig;
 import guru.sfg.beer.order.service.domain.BeerOrder;
 import guru.sfg.beer.order.service.domain.BeerOrderEventEnum;
 import guru.sfg.beer.order.service.domain.BeerOrderStatusEnum;
@@ -10,7 +10,7 @@ import guru.sfg.beer.order.service.web.mappers.BeerOrderMapper;
 import guru.sfg.brewery.model.events.ValidateOrderRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.statemachine.StateContext;
 import org.springframework.statemachine.action.Action;
 import org.springframework.stereotype.Component;
@@ -28,7 +28,7 @@ public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
 
     private final BeerOrderRepository beerOrderRepository;
     private final BeerOrderMapper beerOrderMapper;
-    private final JmsTemplate jmsTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> context) {
@@ -36,7 +36,7 @@ public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
         Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(UUID.fromString(beerOrderId));
 
         beerOrderOptional.ifPresentOrElse(beerOrder -> {
-            jmsTemplate.convertAndSend(JmsConfig.VALIDATE_ORDER_QUEUE, ValidateOrderRequest.builder()
+            rabbitTemplate.convertAndSend("spring-boot-exchange", RabbitmqConfig.VALIDATE_ORDER_QUEUE, ValidateOrderRequest.builder()
                     .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
                     .build());
         }, () -> log.error("Order Not Found. Id: " + beerOrderId));

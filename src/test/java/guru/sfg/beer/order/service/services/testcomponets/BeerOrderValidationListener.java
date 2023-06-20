@@ -1,12 +1,12 @@
 package guru.sfg.beer.order.service.services.testcomponets;
 
-import guru.sfg.beer.order.service.config.JmsConfig;
+import guru.sfg.beer.order.service.config.RabbitmqConfig;
 import guru.sfg.brewery.model.events.ValidateOrderRequest;
 import guru.sfg.brewery.model.events.ValidateOrderResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.annotation.JmsListener;
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Component
 public class BeerOrderValidationListener {
-    private final JmsTemplate jmsTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
-    @JmsListener(destination = JmsConfig.VALIDATE_ORDER_QUEUE)
+    @RabbitListener(queues = RabbitmqConfig.VALIDATE_ORDER_QUEUE)
     public void list(Message msg){
         boolean isValid = true;
         boolean sendResponse = true;
@@ -36,7 +36,7 @@ public class BeerOrderValidationListener {
         }
 
         if (sendResponse) {
-            jmsTemplate.convertAndSend(JmsConfig.VALIDATE_ORDER_RESPONSE_QUEUE,
+            rabbitTemplate.convertAndSend(RabbitmqConfig.VALIDATE_ORDER_RESPONSE_QUEUE,
                     ValidateOrderResult.builder()
                             .isValid(isValid)
                             .orderId(request.getBeerOrder().getId())

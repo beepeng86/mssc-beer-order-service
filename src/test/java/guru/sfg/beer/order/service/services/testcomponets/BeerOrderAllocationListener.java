@@ -1,12 +1,12 @@
 package guru.sfg.beer.order.service.services.testcomponets;
 
-import guru.sfg.beer.order.service.config.JmsConfig;
+import guru.sfg.beer.order.service.config.RabbitmqConfig;
 import guru.sfg.brewery.model.events.AllocateOrderRequest;
 import guru.sfg.brewery.model.events.AllocateOrderResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.annotation.JmsListener;
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class BeerOrderAllocationListener {
 
-    private final JmsTemplate jmsTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
-    @JmsListener(destination = JmsConfig.ALLOCATE_ORDER_QUEUE)
-    public void listen(Message msg){
+    @RabbitListener(queues = RabbitmqConfig.ALLOCATE_ORDER_QUEUE)
+    public void receiveMessage(Message msg){
         AllocateOrderRequest request = (AllocateOrderRequest) msg.getPayload();
         boolean pendingInventory = false;
         boolean allocationError = false;
@@ -49,7 +49,7 @@ public class BeerOrderAllocationListener {
         });
 
         if (sendResponse) {
-            jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESPONSE_QUEUE,
+            rabbitTemplate.convertAndSend(RabbitmqConfig.ALLOCATE_ORDER_RESPONSE_QUEUE,
                     AllocateOrderResult.builder()
                             .beerOrderDto(request.getBeerOrderDto())
                             .pendingInventory(pendingInventory)
